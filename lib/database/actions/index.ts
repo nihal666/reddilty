@@ -3,7 +3,16 @@
 import dbConnect from "..";
 import UserModel from "../models/User.model";
 
-export const createUser = async (userData) => {
+// interfaces/User.ts
+export interface User {
+  clerkId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  imageUrl: string;
+}
+
+export const createUser = async (userData: User) => {
   try {
     await dbConnect();
 
@@ -13,7 +22,7 @@ export const createUser = async (userData) => {
     return newUser;
   } catch (error) {
     console.error("Error creating user:", error);
-    
+
     return null;
   }
 };
