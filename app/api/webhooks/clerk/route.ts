@@ -50,18 +50,18 @@ export async function POST(req: Request) {
 
   const eventType = evt.type;
   if (eventType === "user.created") {
-    console.log("User created", evt.data.id);
-    // const { id, email_addresses, image_url, first_name, last_name } = evt.data;
+    // console.log("User created", evt.data.id);
+    const { id, email_addresses, image_url, first_name, last_name } = evt.data;
 
-    // const user = {
-    //   clerkId: id,
-    //   email: email_addresses[0].email_address,
-    //   firstName: first_name as string,
-    //   lastName: last_name as string,
-    //   imageUrl: image_url,
-    // };
+    const user = {
+      clerkId: id,
+      email: email_addresses[0].email_address,
+      firstName: first_name as string,
+      lastName: last_name as string,
+      imageUrl: image_url,
+    };
 
-    // await createUser(user);
+    await createUser(user);
   }
 
   return new Response("User created successfully", { status: 200 });
