@@ -1,16 +1,30 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Schema, Model } from "mongoose";
 
-const redditSchema = new mongoose.Schema(
+interface IReddit extends Document {
+  userName: string;
+  redditorId: string;
+  iconImage?: string;
+  refreshToken: string;
+  owner: mongoose.Types.ObjectId;
+}
+
+const redditSchema: Schema<IReddit> = new mongoose.Schema(
   {
-    userName: String,
-    redditorId: String,
-    iconImage: String,
-    refreshToken: String,
-    owner: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
+    userName: { type: String, required: true, index: true },
+    redditorId: { type: String, required: true, unique: true, index: true },
+    iconImage: { type: String },
+    refreshToken: { type: String, required: true, select: false },
+    owner: {
+      type: mongoose.SchemaTypes.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
   },
   { timestamps: true }
 );
 
-const RedditModel = mongoose.models.Reddit || mongoose.model("Reddit", redditSchema);
+const RedditModel: Model<IReddit> =
+  mongoose.models.Reddit || mongoose.model<IReddit>("Reddit", redditSchema);
 
 export default RedditModel;

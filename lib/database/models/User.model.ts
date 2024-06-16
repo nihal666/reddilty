@@ -1,17 +1,31 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Schema, Model } from "mongoose";
 
-const userSchema = new mongoose.Schema(
+interface IUser extends Document {
+  clerkId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  imageUrl: string;
+  reddits: mongoose.Types.ObjectId[];
+  submissions?: mongoose.Types.ObjectId[];
+  subreddits?: mongoose.Types.ObjectId[];
+}
+
+const userSchema: Schema<IUser> = new mongoose.Schema(
   {
-    clerkId: { type: String, required: true },
-    email: { type: String, required: true },
+    clerkId: { type: String, required: true, unique: true, index: true },
+    email: { type: String, required: true, unique: true, index: true },
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     imageUrl: { type: String, required: true },
-    // Reddit: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Reddit", required: false }],
+    reddits: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Reddit" }],
+    submissions: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Submission" }],
+    subreddits: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Subreddit" }],
   },
   { timestamps: true }
 );
 
-const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
+const UserModel: Model<IUser> =
+  mongoose.models.User || mongoose.model<IUser>("User", userSchema);
 
 export default UserModel;
