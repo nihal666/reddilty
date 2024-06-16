@@ -4,7 +4,6 @@ import { WebhookEvent } from "@clerk/nextjs/server";
 import { createUser } from "@/lib/database/actions";
 
 export async function POST(req: Request) {
-  // You can find this in the Clerk Dashboard -> Webhooks -> choose the endpoint
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {
@@ -50,20 +49,20 @@ export async function POST(req: Request) {
   }
 
   const eventType = evt.type;
-
   if (eventType === "user.created") {
-    const { id, email_addresses, image_url, first_name, last_name } = evt.data;
+    console.log("User created", evt.data.id);
+    // const { id, email_addresses, image_url, first_name, last_name } = evt.data;
 
-    const user = {
-      clerkId: id,
-      email: email_addresses[0].email_address,
-      firstName: first_name as string,
-      lastName: last_name as string,
-      imageUrl: image_url,
-    };
+    // const user = {
+    //   clerkId: id,
+    //   email: email_addresses[0].email_address,
+    //   firstName: first_name as string,
+    //   lastName: last_name as string,
+    //   imageUrl: image_url,
+    // };
 
-    await createUser(user);
+    // await createUser(user);
   }
 
-  return new Response("Success", { status: 200 });
+  return new Response("User created successfully", { status: 200 });
 }

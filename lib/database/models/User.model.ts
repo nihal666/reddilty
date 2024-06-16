@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema(
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     imageUrl: { type: String, required: true },
-    Reddit: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Reddit", required: false }],
+    // Reddit: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Reddit", required: false }],
   },
   { timestamps: true }
 );
