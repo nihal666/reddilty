@@ -1,290 +1,190 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import axios from "axios";
-import { useState } from "react";
-import { HeatMapGrid } from "react-grid-heatmap";
+import { SquareArrowOutUpRight } from "lucide-react";
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  BarChart,
-  Bar,
 } from "recharts";
+import React, { useState } from "react";
+import axios from "axios";
 
-const yLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const xLabels = [
-  "00:00-01:00",
-  "01:00-02:00",
-  "02:00-03:00",
-  "03:00-04:00",
-  "04:00-05:00",
-  "05:00-06:00",
-  "06:00-07:00",
-  "07:00-08:00",
-  "08:00-09:00",
-  "09:00-10:00",
-  "10:00-11:00",
-  "11:00-12:00",
-  "12:00-13:00",
-  "13:00-14:00",
-  "14:00-15:00",
-  "15:00-16:00",
-  "16:00-17:00",
-  "17:00-18:00",
-  "18:00-19:00",
-  "19:00-20:00",
-  "20:00-21:00",
-  "21:00-22:00",
-  "22:00-23:00",
-  "23:00-00:00",
-];
-
-interface PostSchedulerProps {
-  day: string;
-  timeSlot: string;
+interface Post {
+  created_utc: number;
+  score: number;
+  num_comments: number;
+  title: string;
+  subreddit: string;
+  author: string;
 }
 
-const PostScheduler: React.FC<PostSchedulerProps> = ({ day, timeSlot }) => {
-  return (
-    <div className="flex flex-col items-center gap-3 py-4 px-8 border rounded-md">
-      <div className="flex flex-col gap-2 items-center">
-        <p className="text-lg font-bold">{day}</p>
-        <p className="text-md text-gray-600">{timeSlot}</p>
-      </div>
-      <Button className="mt-2 w-full">Schedule a Post</Button>
-    </div>
-  );
-};
+interface DayPostCount {
+  day: string;
+  postCount: number;
+}
 
-const App = () => {
-  const [data, setData] = useState<number[][]>([]);
-  const [bestTimes, setBestTimes] = useState([]);
-  const [postsPerDay, setPostsPerDay] = useState([]);
-  const [postsPerHour, setPostsPerHour] = useState([]);
-  const [frequentWords, setFrequentWords] = useState([]);
+interface HourPostCount {
+  hourSlot: string;
+  postCount: number;
+}
 
-  const calculateBestTimes = (weeklyEngagement) => {
-    return yLabels.map((day, dayIndex) => {
-      const maxEngagement = Math.max(...weeklyEngagement[dayIndex]);
-      const bestHour = weeklyEngagement[dayIndex].indexOf(maxEngagement);
-      return { day, timeSlot: xLabels[bestHour] };
-    });
-  };
+const Page: React.FC = () => {
+  const [data, setData] = useState<any>(null);
+  const [postsByDay, setPostsByDay] = useState<DayPostCount[]>([]);
+  const [postsByHour, setPostsByHour] = useState<HourPostCount[]>([]);
+  const [topPosts, setTopPosts] = useState<Post[]>([]);
 
-  const calculatePostsPerDay = (weeklyPosts) => {
-    return yLabels.map((day, dayIndex) => {
-      const totalPosts = weeklyPosts[dayIndex].reduce(
-        (acc, val) => acc + val,
-        0
-      );
-      return { day, totalPosts };
-    });
-  };
-
-  const calculatePostsPerHour = (weeklyPosts) => {
-    const postsPerHour = Array(24).fill(0);
-    weeklyPosts.forEach((dayPosts) => {
-      dayPosts.forEach((postCount, hour) => {
-        postsPerHour[hour] += postCount;
-      });
-    });
-    return xLabels.map((timeSlot, hour) => {
-      return { timeSlot, totalPosts: postsPerHour[hour] };
-    });
-  };
-
-  const calculateFrequentWords = (posts) => {
-    const wordCount = {};
-    posts.forEach((post) => {
-      const words = post.title.split(/\W+/);
-      words.forEach((word) => {
-        if (word) {
-          wordCount[word.toLowerCase()] =
-            (wordCount[word.toLowerCase()] || 0) + 1;
-        }
-      });
-    });
-    const sortedWords = Object.entries(wordCount)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 10)
-      .map(([word]) => word);
-    return sortedWords;
-  };
-
-  const fetchHeatmapData = async () => {
+  const handleOnClick = async () => {
     try {
       const response = await axios.get(
-        `https://435f97c9-f178-47dd-82d0-c4ea04488e80-00-141lqd8ngjwl.sisko.replit.dev/top_posts/wallstreetbets`
-      );
-      const topPosts = await response.data;
+        "https://435f97c9-f178-47dd-82d0-c4ea04488e80-00-141lqd8ngjwl.sisko.replit.dev/?initialPath=%2F&id=%3Ar57%3A"
+      ); // Replace with your API endpoint
 
-      // Initialize a 2D array with 7 days and 24 hours each
-      const weeklyEngagement = Array.from({ length: 7 }, () =>
-        new Array(24).fill(0)
-      );
-      const weeklyPosts = Array.from({ length: 7 }, () =>
-        new Array(24).fill(0)
-      );
-
-      // Calculate engagement and post count for each post and add it to the corresponding day and hour
-      topPosts.forEach((post) => {
-        const engagement = post.score + post.num_comments;
-        const postDate = new Date(post.created_utc * 1000);
-        const postDay = postDate.getUTCDay(); // 0 (Sunday) to 6 (Saturday)
-        const postHour = postDate.getUTCHours();
-        weeklyEngagement[postDay][postHour] += engagement;
-        weeklyPosts[postDay][postHour] += 1;
-      });
-
-      setData(weeklyEngagement);
-      setBestTimes(calculateBestTimes(weeklyEngagement));
-      setPostsPerDay(calculatePostsPerDay(weeklyPosts));
-      setPostsPerHour(calculatePostsPerHour(weeklyPosts));
-      setFrequentWords(calculateFrequentWords(topPosts));
+      setData(response.data);
+      processPostData(response.data.total_submissions);
     } catch (error) {
-      console.error("Error fetching data:", error);
-      setData([]);
+      console.error("Error fetching data from API", error);
     }
   };
 
-  console.log();
+  const processPostData = (submissions: Post[]) => {
+    processPostDataByDay(submissions);
+    processPostDataByHour(submissions);
+    processTopPosts(submissions);
+  };
+
+  const processPostDataByDay = (submissions: Post[]) => {
+    const daysOfWeek = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+    const postCounts: DayPostCount[] = daysOfWeek.map((day) => ({ day, postCount: 0 }));
+
+    submissions.forEach((post) => {
+      const postDate = new Date(post.created_utc * 1000);
+      const dayIndex = postDate.getDay();
+      postCounts[dayIndex].postCount += 1;
+    });
+
+    setPostsByDay(postCounts);
+  };
+
+  const processPostDataByHour = (submissions: Post[]) => {
+    const hourSlots: HourPostCount[] = Array.from({ length: 24 }, (_, i) => ({
+      hourSlot: `${i}:00`,
+      postCount: 0,
+    }));
+
+    submissions.forEach((post) => {
+      const postDate = new Date(post.created_utc * 1000);
+      const hourIndex = postDate.getHours();
+      hourSlots[hourIndex].postCount += 1;
+    });
+
+    setPostsByHour(hourSlots);
+  };
+
+  const processTopPosts = (submissions: Post[]) => {
+    const topPostsData: Post[] = submissions
+      .map((post) => ({
+        ...post,
+        totalScore: post.score + post.num_comments,
+      }))
+      .sort((a, b) => b.totalScore - a.totalScore)
+      .slice(0, 10);
+
+    setTopPosts(topPostsData);
+  };
 
   return (
     <div className="p-8">
       <div className="mb-6">
         <div>
-          <div className="flex items-center w-full">
+          <p className="text-2xl font-bold">Redditor Analysis</p>
+          <p className="text-lg text-gray-600">Discover how other redditors are using Reddit</p>
+        </div>
+        <div className="mt-6">
+          <div className="flex items-center">
             <span className="mr-2 text-gray-400">u/</span>
             <Input className="flex-1 p-2 mb-4" />
-            <Button onClick={fetchHeatmapData}>Search</Button>
+          </div>
+          <div className="flex gap-4">
+            <Button onClick={handleOnClick} className="flex-1 px-4 py-2">Search</Button>
+            <Button className="flex-1 px-4 py-2 flex items-center justify-center">
+              View on Reddit <SquareArrowOutUpRight className="ml-2" />
+            </Button>
           </div>
         </div>
-        <div className="mb-6">
-          <p className="text-xl font-bold">
-            Best Times to Post to r/wallstreetbets
-          </p>
-          <p className="text-md text-gray-600">
-            Learn when posts get the most engagement in r/wallstreetbets.
-          </p>
-        </div>
-        <div style={{ width: "100%" }} className="overflow-auto pb-4 px-2">
-          <HeatMapGrid
-            data={data}
-            xLabels={xLabels}
-            yLabels={yLabels}
-            cellRender={(x, y, value) => (
-              <div title={`Pos(${x}, ${y}) = ${value}`}>{value}</div>
-            )}
-            xLabelsStyle={(index) => ({
-              color: "#777",
-              fontSize: ".7rem",
-              marginRight: "20px",
-            })}
-            yLabelsStyle={() => ({
-              fontSize: ".7rem",
-              textTransform: "uppercase",
-              color: "#777",
-            })}
-            cellStyle={(_x, _y, ratio) => ({
-              background: `rgb(12, 160, 44, ${ratio})`,
-              fontSize: ".8rem",
-              color: `rgb(0, 0, 0, ${ratio / 2 + 0.4})`,
-              marginRight: "20px",
-            })}
-            cellHeight="2rem"
-            xLabelsPos="left"
-            yLabelsPos="top"
-            onClick={(x, y) => alert(`Clicked (${x}, ${y})`)}
-            square
-          />
-        </div>
       </div>
-      <div className="mb-6">
-        <p className="text-xl font-bold">Daily Recommendations</p>
-        <p className="text-md text-gray-600">
-          The best time to submit to r/wallstreetbets each day of the week.
-        </p>
-        <ul>
-          {bestTimes.map((time, index) => (
-            <div key={index} className="mt-3">
-              <PostScheduler day={time.day} timeSlot={time.timeSlot} />
+
+      <div className="p-5 rounded-lg mb-6 flex flex-col gap-3">
+        <p className="text-md">1 <span className="text-gray-400">followers</span></p>
+        <p className="text-md">1 <span className="text-gray-400">link karma</span></p>
+        <p className="text-md">0 <span className="text-gray-400">comment karma</span></p>
+        <p className="text-md">Sep. 18, 2022 <span className="text-gray-400">created</span></p>
+        <p className="text-sm text-gray-400">Analytics pulled from the last 2 submissions from u/Tough-Character-7489 starting Nov. 22, 2023.</p>
+      </div>
+
+      <div className="mb-10 overflow-auto">
+        <div className="mb-6">
+          <p className="text-xl font-bold">Posts by Day</p>
+          <p className="text-md text-gray-600">Which days does author submit Reddit posts?</p>
+        </div>
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={postsByDay}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="day" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="postCount" fill="#8884d8" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="overflow-auto">
+        <div className="mb-6">
+          <p className="text-xl font-bold">Posts by Hour</p>
+          <p className="text-md text-gray-600">Which hours does author submit Reddit posts?</p>
+        </div>
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={postsByHour}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="hourSlot" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="postCount" fill="#82ca9d" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="overflow-auto mb-10">
+        <div className="my-5">
+          <p className="text-xl font-bold">Top Posts</p>
+        </div>
+        <div className="flex flex-col gap-3">
+          {topPosts.map((post, index) => (
+            <div key={index} className="py-3 px-4 border-2 rounded-lg">
+              <p className="text-lg font-bold text-blue-400">{`#${index + 1} - ${post.title}`}</p>
+              <p className="text-sm text-gray-400">{`Post to r/${post.subreddit} from u/${post.author} • ${new Date(post.created_utc * 1000).toLocaleString()}`}</p>
+              <p className="text-sm text-gray-400">{`${post.score} upvotes • ${post.num_comments} comments`}</p>
             </div>
           ))}
-        </ul>
-      </div>
-      <div className="mb-6">
-        <p className="text-xl font-bold">Posts per Day</p>
-        <p className="text-md text-gray-600">
-          Total posts for each day of the week.
-        </p>
-        <div>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart
-              width={500}
-              height={300}
-              data={postsPerDay}
-              margin={{
-                top: 5,
-                right: 30,
-                left: 20,
-                bottom: 5,
-              }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="totalPosts" fill="#8884d8" />
-            </BarChart>
-          </ResponsiveContainer>
         </div>
-      </div>
-      <div className="mb-6">
-        <p className="text-xl font-bold">Posts per Hour</p>
-        <p className="text-md text-gray-600">
-          Total posts for each hour of the day.
-        </p>
-        <div>
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart
-              data={postsPerHour}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="timeSlot" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="totalPosts"
-                stroke="#8884d8"
-                activeDot={{ r: 8 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-      <div className="mb-6">
-        <p className="text-xl font-bold">Most Frequent Words</p>
-        <p className="text-md text-gray-600">
-          Most frequent words used in the top posts.
-        </p>
-        <ul>
-          {frequentWords.map((word, index) => (
-            <li key={index}>{word}</li>
-          ))}
-        </ul>
       </div>
     </div>
   );
 };
 
-export default App;
+export default Page;
